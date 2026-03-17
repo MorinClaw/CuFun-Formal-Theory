@@ -1,0 +1,88 @@
+{"synthetic": false,
+ "schemaVersion": "2025-09-10",
+ "outputs":
+ {"o": ["ff4bece29afafd3f.olean"],
+  "i": "c4e38be2b2d3c6b2.ilean",
+  "c": "74a86030f46ca2c6.c"},
+ "log":
+ [{"message":
+   ".> LEAN_PATH=/home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/packages/Cli/.lake/build/lib/lean:/home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/packages/batteries/.lake/build/lib/lean:/home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/packages/Qq/.lake/build/lib/lean:/home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/packages/aesop/.lake/build/lib/lean:/home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/packages/proofwidgets/.lake/build/lib/lean:/home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/packages/importGraph/.lake/build/lib/lean:/home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/packages/LeanSearchClient/.lake/build/lib/lean:/home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/packages/plausible/.lake/build/lib/lean:/home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/packages/mathlib/.lake/build/lib/lean:/home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/build/lib/lean /home/node/.elan/toolchains/leanprover--lean4---v4.29.0-rc6/bin/lean /home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/DDLTheory.lean -o /home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/build/lib/lean/DDLTheory.olean -i /home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/build/lib/lean/DDLTheory.ilean -c /home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/build/ir/DDLTheory.c --setup /home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/.lake/build/ir/DDLTheory.setup.json --json",
+   "level": "trace"},
+  {"message":
+   "DDLTheory.lean:65:63: unused variable `hdelta_lt`\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "DDLTheory.lean:68:5: unused variable `h_nonneg`\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "DDLTheory.lean:74:52: This simp argument is unused:\n  smul_eq_mul\n\nHint: Omit it from the simp argument list.\n  simp [Finset.sum_const, Finset.card_univ,̵ ̵s̵m̵u̵l̵_̵e̵q̵_̵m̵u̵l̵]\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`",
+   "level": "warning"},
+  {"message":
+   "DDLTheory.lean:84:38: unused variable `hDelta`\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "DDLTheory.lean:129:26: unused variable `hDelta1`\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "DDLTheory.lean:168:5: unused variable `halpha`\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "DDLTheory.lean:202:15: unused variable `hn`\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "DDLTheory.lean:202:28: unused variable `hM`\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "DDLTheory.lean:203:23: unused variable `hdelta`\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "DDLTheory.lean:205:13: unused variable `hC`\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "DDLTheory.lean:223:17: unused variable `hdelta`\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "DDLTheory.lean:224:28: unused variable `hC`\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "DDLTheory.lean:253:5: unused variable `hC`\n\nNote: This linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"}],
+ "inputs":
+ [["DDLTheory:deps",
+   [["deps",
+     [["CuFunTheory/DDLTheory:extraDep",
+       [["@CuFunTheory:extraDep", "00000000000006bb"]]],
+      ["imports",
+       [["Mathlib.Analysis.SpecialFunctions.Log.Basic transitive imports (legacy)",
+         "9f944e347a268830"],
+        ["Mathlib.Analysis.SpecialFunctions.Log.Basic:importAllArts",
+         "fe5662343b3b0627"],
+        ["Mathlib.Topology.MetricSpace.Basic transitive imports (legacy)",
+         "54d7ee0fbd9bf731"],
+        ["Mathlib.Topology.MetricSpace.Basic:importAllArts",
+         "754e28a363a5c1fd"],
+        ["Mathlib.Algebra.Order.Field.Basic transitive imports (legacy)",
+         "ad622cb5c727adac"],
+        ["Mathlib.Algebra.Order.Field.Basic:importAllArts", "fb9926f0b5ade973"],
+        ["Mathlib.Analysis.MeanInequalities transitive imports (legacy)",
+         "531eecefe5574b45"],
+        ["Mathlib.Analysis.MeanInequalities:importAllArts", "f53be70634a2b91c"],
+        ["Mathlib.Probability.Independence.Basic transitive imports (legacy)",
+         "2348e3a3c3bdfdbf"],
+        ["Mathlib.Probability.Independence.Basic:importAllArts",
+         "fc97a13ed536e0c2"]]]]],
+    ["libs",
+     [["import dynlibs", "00000000000006bb"],
+      ["package external libraries", "00000000000006bb"],
+      ["module dynlibs", "00000000000006bb"],
+      ["module plugins", "00000000000006bb"]]]]],
+  ["Lean 4.29.0, commit 00659f8e6071d7e46131ed643bf8003b99b044e9",
+   "d4ef66a63896cd60"],
+  ["/home/node/.openclaw/workspaces/ou_c70286d6f73543557c8b51f12eb65b1d/cufun-theory/DDLTheory.lean",
+   "6352b0dd144b64ae"],
+  ["options", "00000000000006bb"],
+  ["isModule: false", "feefd2a0d3a1847e"],
+  ["Module.name: DDLTheory", "f3976b66f7c0000f"],
+  ["Package.id?: (some CuFunTheory)", "ecbc3223c7c4421d"],
+  ["Module.leanArgs: #[]", "00000000000006bb"]],
+ "depHash": "f721b7232df77d6e"}
