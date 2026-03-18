@@ -11,3 +11,6 @@ lean_lib «CuFunTheory» where
 
 lean_lib «DDLTheory» where
   roots := #[`DDLTheory]
+
+lean_lib «Thm7» where
+  roots := #[`Thm7]

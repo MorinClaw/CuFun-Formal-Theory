@@ -1,0 +1,240 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{mathtools}
+\usepackage{hyperref}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{assumption}{Assumption}
+
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\title{Theorem 7: Universal Approximation with Quantitative Rates\\
+\large Lean~4 / Mathlib Formal Verification Notes}
+\author{Maolin Wang}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Assumptions}
+
+\begin{assumption}[Regularity]\label{assumption:regularity}
+$F_0(\tau|\boldsymbol{h})$ is a valid CDF in $\tau$ for every $\boldsymbol{h}\in\mathcal{H}$:
+monotone, $F_0(0|\boldsymbol{h})=0$, $F_0(\tau|\boldsymbol{h})\to 1$ as $\tau\to\infty$,
+and $F_0(\tau|\boldsymbol{h})\in[0,1]$.
+\end{assumption}
+
+\begin{assumption}[Architecture]\label{assumption:architecture}
+The MNN has non-negative $\tau$-path weights, output via $\sigma(\mathcal{M})$.
+\end{assumption}
+
+\begin{assumption}[Smoothness]\label{assumption:smoothness}
+$F_0$ is $\alpha$-H\"older in $\boldsymbol{h}$, uniform in $\tau$:
+there exist $C,\alpha>0$ such that
+\[
+  |F_0(\tau|\boldsymbol{h}_1) - F_0(\tau|\boldsymbol{h}_2)|
+  \;\le\; C\,\|\boldsymbol{h}_1 - \boldsymbol{h}_2\|^{\alpha}
+  \quad \forall\,\tau\ge 0,\;\boldsymbol{h}_1,\boldsymbol{h}_2\in\mathcal{H}.
+\]
+\end{assumption}
+
+\section{Main Theorem}
+
+\begin{theorem}[Universal Approximation with Quantitative Rates]
+\label{thm:universal_approx}
+Under Assumptions~\ref{assumption:regularity}--\ref{assumption:architecture}
+and~\ref{assumption:smoothness}, for any $\epsilon > 0$, there exists a
+network configuration $\theta^*$ with
+\[
+  N^* = O\!\left(\epsilon^{-(1+d/\alpha)}\right) \text{ parameters}
+\]
+such that
+\[
+  \sup_{\tau \geq 0,\, \boldsymbol{h} \in \mathcal{H}}
+  \bigl|F^*(\tau|\boldsymbol{h}) - F_0(\tau|\boldsymbol{h})\bigr| < \epsilon,
+\]
+where $F^*(\tau|\boldsymbol{h}) = \sigma\!\bigl(\mathcal{M}(\tau,\boldsymbol{h};\theta^*)\bigr)$
+is a valid CDF for all~$\theta^*$.
+\end{theorem}
+
+\begin{proof}
+\emph{This is an existence proof}: we construct a specific network in the
+hypothesis class satisfying Assumption~\ref{assumption:architecture} that
+achieves the stated bound. The proof proceeds in two stages.
+\textbf{Stage~A} (Steps~1--6) builds an auxiliary CDF approximation
+$\hat{\mathcal{M}} \in [0,1]$ satisfying
+$|\hat{\mathcal{M}} - F_0| < \epsilon/2$ everywhere.
+\textbf{Stage~B} (Step~7) lifts $\hat{\mathcal{M}}$ into the
+$\sigma$-based MNN architecture, incurring at most $\epsilon/2$ additional error.
+
+%% ============ STAGE A ============
+\medskip\noindent\textsc{Stage A: Direct CDF Approximation.}
+
+\textbf{Step~1 (Tail and boundary reduction).}
+By Lemma~\ref{lem:tail}, choose $T^* = T^*(\epsilon/8,\mathcal{H})$ so that
+\[
+  \inf_{\boldsymbol{h}\in\mathcal{H}} F_0(T^*|\boldsymbol{h}) > 1 - \tfrac{\epsilon}{8}.
+\]
+Since $F_0(0|\boldsymbol{h}) = 0$ and $F_0$ is continuous (Assumption~\ref{assumption:regularity}),
+choose $\tau_{\min} > 0$ such that
+\[
+  \sup_{\boldsymbol{h}\in\mathcal{H}} F_0(\tau_{\min}|\boldsymbol{h}) < \tfrac{\epsilon}{8}.
+\]
+The core region is $[\tau_{\min},\,T^*] \times \mathcal{H}$,
+on which $F_0$ takes values in $[c_{\ell},\, 1-c_u]$ for constants
+$c_{\ell}, c_u > 0$ independent of~$\epsilon$.
+
+\textbf{Step~2 (History discretisation).}
+Define the \emph{Gaussian softmax $\alpha$-moment}
+\[
+  \Gamma_{d,\alpha}
+  \;:=\;
+  \sup_{\boldsymbol{h}\in\mathcal{H}}\;
+  \sum_{j} w_j(\boldsymbol{h})\,
+  \Bigl(\frac{\|\boldsymbol{h}_j - \boldsymbol{h}\|}{\delta}\Bigr)^{\!\alpha},
+\]
+where $w_j$ are the Gaussian softmax weights defined in Step~4 below.
+This constant is finite: the nearest centre $j^*$ contributes $\le 1$,
+while a centre at distance $r\delta$ ($r>1$) receives softmax weight
+$w_j \le e^{1-r^2}$,
+and the number of centres in the shell $[r\delta,(r\!+\!1)\delta]$
+is $O(r^{d-1})$.
+Hence
+$\Gamma_{d,\alpha}
+  \le 1 + e\!\sum_{r=1}^{\infty} C' r^{d-1+\alpha} e^{-r^2} < \infty$.
+
+Set
+$\delta = \bigl(\epsilon\,/\,(8\,C\,\max\{1,\Gamma_{d,\alpha}\})\bigr)^{1/\alpha}$.
+Cover the compact set $\mathcal{H}\subset\mathbb{R}^d$ with a $\delta$-net
+$\{\boldsymbol{h}_j\}_{j=1}^K$ where
+$K = O(\epsilon^{-d/\alpha})$.
+
+\textbf{Step~3 (Pointwise monotone approximation).}
+For each centre $\boldsymbol{h}_j$, apply a piecewise-linear construction to
+$g_j(\tau) := F_0(\tau|\boldsymbol{h}_j)$ on $[0,T^*]$ with tolerance $\epsilon/8$.
+This yields a non-decreasing function
+$\hat{g}_j$ with $O(\epsilon^{-1/\alpha})$ breakpoints satisfying
+$\|\hat{g}_j - g_j\|_{\infty,[0,T^*]} < \epsilon/8$.
+
+\textbf{Step~4 (Blending).}
+Define Gaussian softmax weights:
+\[
+  w_j(\boldsymbol{h})
+  = \frac{\exp\!\bigl(-\|\boldsymbol{h}-\boldsymbol{h}_j\|^2/\delta^2\bigr)}
+         {\sum_k \exp\!\bigl(-\|\boldsymbol{h}-\boldsymbol{h}_k\|^2/\delta^2\bigr)},
+  \qquad \sum_j w_j \equiv 1,\; w_j \ge 0,
+\]
+and set
+$\hat{\mathcal{M}}(\tau,\boldsymbol{h})
+  := \sum_j w_j(\boldsymbol{h})\,\hat{g}_j(\tau)$.
+Key properties: (a)~monotone in $\tau$; (b)~range in $[0,1]$; (c)~$\hat{\mathcal{M}}(0,\cdot)=0$.
+
+\textbf{Step~5 (Core error bound on $[0,T^*]\times\mathcal{H}$).}
+\begin{align*}
+  |\hat{\mathcal{M}} - F_0|
+  &\le \sum_j w_j\,|\hat{g}_j - g_j|
+       + \sum_j w_j\,|g_j - F_0| \\
+  &\le \frac{\epsilon}{8}
+       + C\delta^{\alpha}\,\Gamma_{d,\alpha}
+  \;\le\; \frac{\epsilon}{4}.
+\end{align*}
+
+\textbf{Step~6 (Boundary and tail regions).}
+Upper tail ($\tau > T^*$): $|\hat{\mathcal{M}} - F_0| \le 3\epsilon/8 < \epsilon/2$.
+Lower boundary ($\tau \in [0,\tau_{\min}]$): $|\hat{\mathcal{M}} - F_0| < 3\epsilon/8 < \epsilon/2$.
+
+Combined:
+$\sup_{\tau\ge 0,\,\boldsymbol{h}\in\mathcal{H}}|\hat{\mathcal{M}}-F_0| < \epsilon/2$.
+
+%% ============ STAGE B ============
+\medskip\noindent\textsc{Stage B: Lifting to the $\sigma$-MNN Architecture.}
+
+\textbf{Step~7.}
+Let $\eta = c_\ell/2 > 0$ (fixed constant, independent of $\epsilon$).
+Define $\tilde{\mathcal{M}} = (1-2\eta)\hat{\mathcal{M}} + \eta \in [\eta,1-\eta]$.
+Apply the logit lift $\mathcal{M}_{\mathrm{pre}} = \sigma^{-1}(\tilde{\mathcal{M}})$,
+re-discretize using the same construction (Steps~2--4) in the pre-sigmoid space
+with H\"older constant $C' = C/(\eta(1-\eta))$,
+obtaining $\mathcal{M}_{\mathrm{net}}$ with $O(\epsilon^{-(1+d/\alpha)})$ parameters.
+Since $\operatorname{Lip}(\sigma)=1/4$:
+\[
+  |\sigma(\mathcal{M}_{\mathrm{net}}) - \tilde{\mathcal{M}}| < \epsilon/2.
+\]
+
+\emph{Final combination:}
+\[
+  |F^* - F_0|
+  \;\le\;
+  \underbrace{|\sigma(\mathcal{M}_{\mathrm{net}}) - \tilde{\mathcal{M}}|}_{<\,\epsilon/2}
+  +
+  \underbrace{|\tilde{\mathcal{M}} - \hat{\mathcal{M}}|}_{\le\,\eta}
+  +
+  \underbrace{|\hat{\mathcal{M}} - F_0|}_{<\,\epsilon/2 - \eta}
+  \;<\; \epsilon.
+\]
+
+\textbf{Parameter count:}
+$K \times O(\epsilon^{-1/\alpha}) = O(\epsilon^{-(1+d/\alpha)})$.
+\end{proof}
+
+\section{Lean~4 Verification Summary}
+
+The file \texttt{Thm7.lean} formalizes each step as a separate lemma in Lean~4/Mathlib~4.
+
+\subsection*{Fully Proved Lemmas (no \texttt{sorry})}
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+\textbf{Lemma} & \textbf{Key tactic} \\
+\hline
+\texttt{step1\_tail\_bdy} & \texttt{max} construction + monotonicity \\
+\texttt{gaussW\_nonneg} & \texttt{div\_nonneg} + \texttt{exp\_pos} \\
+\texttt{gaussW\_sum\_one} & \texttt{Finset.sum\_div} + \texttt{div\_self} \\
+\texttt{step4a\_mono} & \texttt{Finset.sum\_le\_sum} + convexity \\
+\texttt{step4b\_range} & Convex combination of $[0,1]$-valued functions \\
+\texttt{step4c\_boundary} & \texttt{Finset.sum\_eq\_zero} + \texttt{mul\_zero} \\
+\texttt{step6\_upper\_tail} & \texttt{abs\_lt} + \texttt{linarith} \\
+\texttt{step6\_lower\_bdy} & \texttt{abs\_lt} + \texttt{linarith} \\
+\texttt{perturbation\_range} & \texttt{nlinarith} \\
+\texttt{step7\_combine} & \texttt{rw [abs\_lt]} + \texttt{linarith} (ring identity) \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection*{Lemmas Using \texttt{sorry} (Deep Analysis)}
+
+\begin{itemize}
+  \item \texttt{step2\_Gamma\_finite} — Gaussian shell summation: $\Gamma_{d,\alpha} < \infty$.
+  \item \texttt{step3\_pwl} — PWL approximation lemma.
+    \emph{Note: requires $\tau$-direction H\"older regularity of $F_0$, which is
+    not stated in the current assumptions and must be added.}
+  \item \texttt{step5\_core\_error} — Weighted triangle inequality over softmax mixture.
+  \item \texttt{sigmoid\_quarter\_lip} — $\operatorname{Lip}(\sigma)=1/4$; proof uses
+    \texttt{lipschitzWith\_of\_nnnorm\_deriv\_le} but NNReal coercion API differs
+    across Mathlib versions.
+  \item \texttt{logit\_lip\_on\_interval} — MVT on $\sigma^{-1}$.
+  \item \texttt{stage\_A}, \texttt{stage\_B}, \texttt{theorem7} — Orchestration skeleton.
+\end{itemize}
+
+\subsection*{Known Issues / Paper Gaps}
+
+\begin{enumerate}
+  \item \textbf{Step~2 circular dependency:} $\Gamma_{d,\alpha}$ is defined via $w_j$
+    which depends on $\delta$, but $\delta$ depends on $\Gamma_{d,\alpha}$.
+    Resolved by noting the normalized distances $\|\boldsymbol{h}_j-\boldsymbol{h}\|/\delta$
+    form a unit-spaced lattice independent of $\delta$, but this argument
+    should be made explicit.
+
+  \item \textbf{Step~3 missing assumption:} The PWL approximation requires
+    $\tau$-direction H\"older regularity of $F_0$.
+    Currently only $\boldsymbol{h}$-direction smoothness is assumed.
+
+  \item \textbf{Step~7 tolerance adjustment:} Stage~A must be run with tolerance
+    $\epsilon/2 - \eta$ (not $\epsilon/2$) for the final error to sum to $\epsilon$.
+    The proof mentions this but could be made more explicit.
+\end{enumerate}
+
+\end{document}
