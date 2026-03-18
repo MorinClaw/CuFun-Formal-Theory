@@ -1,0 +1,362 @@
+\section{Experiment}\label{sec:exp}
+
+We evaluate CuFun on both synthetic and real-world datasets through
+log-likelihood comparison, intensity estimation, and long-range dependency
+analysis. Each experiment is designed to provide direct empirical evidence
+for the theoretical guarantees established in Section~\ref{sec:thoe}.
+
+% ------------------------------------------------------------------
+\subsection{Datasets}
+% ------------------------------------------------------------------
+
+\paragraph{Synthetic Datasets.}
+
+\noindent\textbf{Hawkes Processes.}
+The Hawkes process employs a conditional intensity function
+\[
+  \lambda(t\mid\mathcal{H}(t))
+  = \mu + \sum_{j=1}^M \alpha_j\beta_j\exp\!\bigl\{-\beta_j(t-t_j)\bigr\}.
+\]
+\textit{Hawkes1} uses $M=1$, $\mu=0.2$, $\alpha_1=0.8$, $\beta_1=0.8$.
+\textit{Hawkes2} uses $M=2$, $\mu=0.2$, $\alpha_1=0.4$, $\alpha_2=0.4$,
+$\beta_1=1.0$, $\beta_2=20.0$, introducing a fast-decaying component
+that challenges numerical integration methods.
+
+\noindent\textbf{Renewal Processes.}
+Inter-event intervals $\{\tau_i=t_{i+1}-t_i\}$ are i.i.d.\ with density
+$p(\tau)$~\cite{omi2019fully}.
+\textit{S-Renewal} draws $p(\tau)$ from a log-normal distribution
+(mean $1.0$, std $6.0$).
+\textit{NS-Renewal} introduces non-stationarity~\cite{lindqvist2003trend}
+by rescaling a gamma-distributed stationary sequence
+($\mu=1.0$, $\sigma=0.5$) via the trend $r(t)=0.99\sin(2\pi t/20000)+1$,
+verifying model adaptability under distributional shift.
+
+\paragraph{Real-world Datasets.}
+We use eight public datasets spanning diverse domains:
+
+\noindent\textbf{Stack Overflow}~\cite{du2016recurrent,grant2013encouraging}:
+Sequential badge-earning events from the most active users on the
+programming Q\&A platform.
+
+\noindent\textbf{MIMIC2}\footnote{https://github.com/musically-ut/tf\_rmtpp}:
+Anonymised ICU visit records, where each event corresponds to a hospital admission.
+
+\noindent\textbf{Twitter}\footnote{https://github.com/musically-ut/tf\_rmtpp}:
+Retweet sequences time-stamped relative to the original tweet's creation.
+
+\noindent\textbf{Reddit}\footnote{\label{fn:jodie}https://github.com/srijankr/jodie/}~\cite{kumar2019predicting,shchur2019intensity}:
+Submission events on active subreddits from prominent users.
+
+\noindent\textbf{Wikipedia}\textsuperscript{\ref{fn:jodie}}:
+Edit events on the most active Wikipedia pages by highly active editors.
+
+\noindent\textbf{Music}~\cite{celma2010music}:
+User-specific music listening events.
+
+\noindent\textbf{Bookorder}\textsuperscript{\ref{fn:jodie}}:
+High-frequency trading records (buy/sell) from the New York Stock Exchange,
+with millisecond resolution — a stress test for models under high-frequency events.
+
+\noindent\textbf{Mooc}\textsuperscript{\ref{fn:jodie}}:
+Student interactions (video views, problem-solving) on an online platform.
+
+\noindent\textbf{Yelp}\footnote{https://www.yelp.com/dataset/challenge}:
+Reviews of the top 300 most popular restaurants in Toronto, forming
+per-restaurant temporal review sequences.
+
+% ------------------------------------------------------------------
+\subsection{Baselines}
+% ------------------------------------------------------------------
+
+We compare against four representative baselines:
+
+\noindent\textbf{Constant Model}~\cite{sill1997monotonic,omi2019fully}:
+An RNN that assumes a constant (exponential) inter-event distribution
+whose mean is determined by the hidden state.
+Numerical integration is required at inference, providing a lower-bound
+reference for integration-induced error.
+
+\noindent\textbf{Exponential (Exp) Model}:
+An RNN with an intensity function that varies exponentially with $\tau$.
+Numerical integration is unavoidable for log-likelihood computation.
+
+\noindent\textbf{RMTPP}~\cite{du2016recurrent}:
+A recurrent model with intensity as a non-linear function of event history.
+Log-likelihood requires numerical integration, incurring the rounding error
+analysed in Theorem~\ref{thm:numerical_superiority}.
+
+\noindent\textbf{FullyNN}~\cite{omi2019fully}:
+A feedforward network modeling the \emph{cumulative intensity}
+$\Lambda(\tau)=\int_0^\tau\lambda^*(s)\,ds$, from which the CDF is recovered
+as $F^*=1-\exp(-\Lambda)$.
+This construction also guarantees a valid CDF and avoids quadrature at training
+time.
+Unlike CuFun, however, the additional nonlinear layer $\exp(-\Lambda)$ between
+the network output and the log-likelihood increases the condition number of the
+computation (Theorem~\ref{thm:numerical_superiority}), and the indirect CDF
+parameterization does not carry the structural monotonicity guarantees of the
+MNN architecture (Theorems~\ref{thm:mnn_monotone} and~\ref{thm:mnn_bounded}).
+
+% ------------------------------------------------------------------
+\subsection{Implementation Details}
+% ------------------------------------------------------------------
+
+Each experiment is repeated ten times with different train/validation/test
+splits, with sequence length capped at 128.
+We minimise NLL using Adam~\cite{kingma2014adam} (lr $=10^{-3}$, batch
+size 64, up to 3000 epochs, early stopping after 100 stagnant epochs).
+All hyperparameters (including $L_2$ regularisation) are held constant
+across models. All experiments are implemented in PyTorch.
+
+\paragraph{Evaluation metric.}
+We report the Negative Log-Likelihood (NLL):
+\begin{equation}
+  \mathrm{NLL}(\theta)
+  = -\sum_{i=1}^n \log P(y_i\mid\theta).
+\end{equation}
+Lower NLL indicates a better-fitting model.
+NLL directly measures the quality of
+$p^*(\tau\mid\boldsymbol{h}) = dF/d\tau$,
+confirmed by Theorem~\ref{thm:cdf_intensity_equiv}.
+
+% ------------------------------------------------------------------
+\subsection{NLL Comparison on Synthetic Datasets}
+% ------------------------------------------------------------------
+
+Figure~\ref{nll_synthetic} reports NLL on the four synthetic datasets.
+Three consistent findings emerge:
+
+\paragraph{(1) CuFun achieves the lowest NLL on all synthetic datasets.}
+CuFun attains NLL $0.471$, $-0.027$, $0.286$, $0.508$ on Hawkes1,
+Hawkes2, S-Renewal, NS-Renewal — all strictly below FullyNN
+($0.509$, $0.010$, $0.317$, $0.519$).
+This validates Theorem~\ref{thm:universal_approx}: the MNN can
+approximate any valid conditional CDF to arbitrary precision.
+
+\paragraph{(2) Integration-based models degrade on high-frequency data.}
+On Hawkes2 ($\beta_2=20.0$), the Exp model shows the largest gap.
+This matches Theorem~\ref{thm:numerical_superiority}: large $N$ (needed
+to resolve rapid oscillations) inflates $\gamma_N \gg \gamma_{2LW}$,
+and accumulated rounding error dominates.
+CuFun's autodiff with $\mathcal{O}(LW)$ operations stays numerically stable.
+
+\paragraph{(3) CuFun outperforms FullyNN despite both avoiding quadrature.}
+The advantage stems from \emph{structural} validity:
+CuFun's monotone MNN guarantees $F\in[0,1]$ and $dF/d\tau>0$
+(Theorems~\ref{thm:mnn_monotone}--\ref{thm:mnn_bounded}), letting the
+optimiser exploit the full feasible parameter space without constraint
+projection.
+
+\begin{figure*}[!htp]
+\centering
+\begin{subfigure}{.235\textwidth}
+  \centering\includegraphics[width=\linewidth]{Figures/Hawkes1.pdf}
+\end{subfigure}%
+\begin{subfigure}{.235\textwidth}
+  \centering\includegraphics[width=\linewidth]{Figures/Hawkes2.pdf}
+\end{subfigure}%
+\begin{subfigure}{.235\textwidth}
+  \centering\includegraphics[width=\linewidth]{Figures/S-Renewal.pdf}
+\end{subfigure}%
+\begin{subfigure}{.235\textwidth}
+  \centering\includegraphics[width=\linewidth]{Figures/NS-Renewal.pdf}
+\end{subfigure}
+\caption{NLL comparison on synthetic datasets. \textbf{Lower is better.}
+All improvements of CuFun are \textbf{statistically significant}
+(two-sided $t$-test, $p<0.05$).}
+\label{nll_synthetic}
+\end{figure*}
+
+% ------------------------------------------------------------------
+\subsection{NLL Comparison on Real-world Datasets}
+% ------------------------------------------------------------------
+
+Figure~\ref{nll_real} reports relative NLL across eight real-world datasets
+(positive = CuFun is better). Four observations stand out:
+
+\paragraph{(1) CuFun achieves consistent superiority across domains.}
+CuFun leads on six of eight datasets.
+The gains on Bookorder (NLL $-8.060$ vs.\ FullyNN $-7.532$) and
+Mooc ($6.155$ vs.\ $6.749$) are most pronounced — both high-frequency
+datasets confirming Theorem~\ref{thm:numerical_superiority}.
+
+\paragraph{(2) CDF modeling improves stability for extreme events.}
+On Bookorder (millisecond-resolution timestamps spanning orders of
+magnitude), intensity-based models suffer ill-conditioning when
+$\lambda^*$ is very large or small.
+CuFun's sigmoid output is always in $(0,1)$
+(Theorem~\ref{thm:mnn_bounded}), preventing catastrophic cancellation
+in $\log(1-F(\tau))$~\cite{magdon1998neural}.
+
+\paragraph{(3) On social-media datasets, all models converge.}
+Twitter (NLL $10.2043$) and Stack Overflow ($14.431$) show similar NLL
+across models.
+
+\paragraph{(4) Medical and music domains confirm broad applicability.}
+On MIMIC2 ($0.466$) and Music ($-2.759$), CuFun maintains competitive
+performance. The smooth, valid-CDF output supports
+Theorem~\ref{thm:consistency_rate}: the approximation-error component
+converges at the minimax-optimal rate $O(n^{-2\alpha/(2\alpha+d)})$,
+benefiting moderate-sample domains.
+
+\begin{figure*}[!tp]
+\centering
+\begin{subfigure}{.225\textwidth}
+  \centering\includegraphics[width=\linewidth]{Figures/StackOverflow.pdf}
+\end{subfigure}%
+\begin{subfigure}{.225\textwidth}
+  \centering\includegraphics[width=\linewidth]{Figures/MIMIC2.pdf}
+\end{subfigure}%
+\begin{subfigure}{.225\textwidth}
+  \centering\includegraphics[width=\linewidth]{Figures/Twitter.pdf}
+\end{subfigure}%
+\begin{subfigure}{.225\textwidth}
+  \centering\includegraphics[width=\linewidth]{Figures/Reddit.pdf}
+\end{subfigure}
+\newline
+\begin{subfigure}{.225\textwidth}
+  \centering\includegraphics[width=\linewidth]{Figures/Wikipedia.pdf}
+\end{subfigure}%
+\begin{subfigure}{.225\textwidth}
+  \centering\includegraphics[width=\linewidth]{Figures/Music.pdf}
+\end{subfigure}%
+\begin{subfigure}{.225\textwidth}
+  \centering\includegraphics[width=\linewidth]{Figures/Bookorder.pdf}
+\end{subfigure}%
+\begin{subfigure}{.225\textwidth}
+  \centering\includegraphics[width=\linewidth]{Figures/Mooc.pdf}
+\end{subfigure}
+\caption{NLL comparison on real-world datasets (relative to CuFun).
+\textbf{Lower is better.} All improvements are \textbf{statistically
+significant} ($t$-test, $p<0.05$) except Wikipedia and Music.}
+\label{nll_real}
+\end{figure*}
+
+% ------------------------------------------------------------------
+\subsection{Intensity Function Estimation}
+% ------------------------------------------------------------------
+
+\subsubsection{High-Frequency Modeling on Hawkes2}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=1.0\linewidth]{Figures/intensity_compa.pdf}
+\caption{Estimated conditional intensity functions on the Hawkes2 dataset
+($\beta_2 = 20.0$, fast-decaying component). CuFun tracks the true
+generating intensity faithfully across both slow and fast time scales.
+Exp and FullyNN show systematic deviations at high-frequency peaks,
+consistent with the condition-number analysis of
+Theorem~\ref{thm:numerical_superiority}.}
+\label{simu_haw2}
+\end{figure}
+
+The Hawkes2 dataset provides a canonical stress test with slow
+($\beta_1=1.0$) and fast ($\beta_2=20.0$) components.
+We compare CuFun, FullyNN, and Exp against the true generating model.
+
+The Exp model fails to track rapid oscillations
+(Theorem~\ref{thm:numerical_superiority}): $N$-point quadrature inflates
+$\gamma_N$ as $\beta_2$ increases, while CuFun's $\mathcal{O}(LW)$
+autodiff keeps $\gamma_{2LW}$ small.
+
+FullyNN, despite avoiding quadrature, shows frequent spikes in the
+high-frequency regime.
+Without the structural guarantees of the MNN architecture, density values
+near zero create large $\log p^*$ penalties and gradient instability.
+CuFun's bounded sigmoid output eliminates this failure mode.
+
+\subsubsection{Long-Range Modeling on Yelp}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=1.0\linewidth]{Figures/intenfun.pdf}
+\caption{Density predictions on the Yelp dataset emphasising long-range
+temporal modeling. CuFun captures the heavy tail more faithfully,
+consistent with Theorem~\ref{thm:universal_approx}: the MNN can
+$\varepsilon$-approximate any $\alpha$-H\"{o}lder CDF on $[0,T]$,
+including heavy-tailed distributions.}
+\label{density_yelp}
+\end{figure}
+
+The Yelp dataset has a heavy-tailed inter-arrival distribution,
+testing long-range temporal modeling.
+CuFun's density estimate (Figure~\ref{density_yelp}) matches the
+empirical tail more faithfully than competitors.
+By Theorem~\ref{thm:universal_approx}, CuFun's MNN can approximate any
+$\alpha$-H\"{o}lder continuous CDF on $[0,T]$ to within $\varepsilon$,
+including heavy-tailed ones.
+The bias-variance decomposition (Theorem~\ref{thm:consistency_rate})
+then guarantees minimax-optimal convergence over the full support, with
+particular accuracy in the tail region governing rare high-impact events.
+
+% ------------------------------------------------------------------
+\subsection{Ablation: Fusion Operation}
+% ------------------------------------------------------------------
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.8\linewidth]{Figures/two_value_final.pdf}
+\caption{Value comparison during training: addition vs.\ element-wise
+product operations. Under addition, a magnitude disparity causes
+$\boldsymbol{h}$ to approach zero. Under element-wise product,
+$\boldsymbol{h}$ maintains consistent scale, acting as a gate that
+modulates future-event predictions from accumulated history.}
+\label{value_comparison}
+\end{figure}
+
+As discussed in Section~\ref{sec:thoe}, it is essential to compare
+the outputs from the history encoder ($\boldsymbol{h}$) and the
+time-interval network ($\tau$).
+We conduct this ablation on the Reddit dataset, where differences are
+most pronounced.
+Figure~\ref{value_comparison} plots the per-epoch output magnitudes of
+the two branches.
+In the addition variant, a significant magnitude disparity emerges:
+$\boldsymbol{h}$ approaches zero, indicating that the history signal
+is dominated by the $\tau$ branch.
+In the element-wise product variant, both branches maintain consistent
+scale; the history branch acts as a gate that multiplicatively
+modulates the time-based prediction.
+This gating mechanism is the key structural difference that enables
+CuFun to leverage long-range dependencies effectively.
+
+% ------------------------------------------------------------------
+\subsection{Computational Efficiency Analysis}
+% ------------------------------------------------------------------
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.6\linewidth]{Figures/inference_time_comparison (1).pdf}
+\caption{Inference time comparison on the Hawkes1 dataset.
+Time is measured in milliseconds (ms) per sequence on a
+\textbf{logarithmic scale}. \textbf{Lower is better.}
+All baselines, including FullyNN, exhibit significantly higher
+inference times than CuFun.}
+\label{fig:inference_time}
+\end{figure}
+
+We measure average wall-clock inference time (ms per sequence) on the
+Reddit test set, with all models in the same environment averaged over
+multiple runs.
+
+As shown in Figure~\ref{fig:inference_time}, CuFun requires only
+$31.0$ ms per sequence, versus $\sim\!140$ ms for all baselines —
+nearly a $5\times$ speedup.
+This gap applies equally to intensity-based models (RMTPP, Exp, Const)
+and to FullyNN.
+
+The underlying reason is algorithmic.
+RMTPP and similar models are slow due to iterative Monte Carlo
+simulation (e.g., Ogata's thinning algorithm).
+FullyNN is slow at inference because predicting the next-event time
+requires numerical root-finding on $F^*(\tau)=1-\exp(-\Lambda(\tau))$,
+which in turn involves evaluating a neurally-parameterized integral.
+CuFun circumvents both costs entirely: prediction reduces to a single
+CDF inversion $\tau^* = F^{*-1}(u)$ for uniform $u\sim\mathrm{Unif}[0,1]$,
+which is solvable in $O(1)$ network forward passes via bisection on a
+bounded sigmoid output.
+This analysis demonstrates that CuFun uniquely breaks the
+efficiency-expressiveness trade-off, delivering state-of-the-art
+accuracy with practical inference performance for real-world temporal
+event forecasting.
