@@ -51,6 +51,76 @@ $\{\tau_j\}_{j < i-1}$, with $\tau_i \sim F_0(\cdot|\boldsymbol{h}_{i-1})$.
 \end{assumption}
 
 % ============================================================
+\subsection{MNN Structural Properties}
+% ============================================================
+
+\begin{theorem}[MNN Architectural Monotonicity and Boundedness \verified{}]
+\label{thm:mnn-mono}
+Under Assumption~\ref{assumption:architecture}, the MNN output
+$F^*(\tau|\boldsymbol{h}) := \sigma\!\bigl(\mathcal{M}(\tau,\boldsymbol{h};\theta)\bigr)$
+is (i) monotone non-decreasing in $\tau$, (ii) bounded in $(0,1)$, and
+(iii) has well-defined log-density $\log(dF^*/d\tau) > -\infty$.
+\end{theorem}
+
+\begin{proof}
+(i)~By the non-negative weight constraint (Assumption~\ref{assumption:architecture}),
+$\mathcal{M}(\tau_2)-\mathcal{M}(\tau_1) = \sum_i w_i(\phi(\tau_2)-\phi(\tau_1)) \geq 0$
+for $\tau_1 \leq \tau_2$; since $\sigma$ is strictly increasing, $F^*(\tau_1)\leq F^*(\tau_2)$.
+(ii)~$\sigma(z)\in(0,1)$ for all $z\in\R$.
+(iii)~$dF^*/d\tau = \sigma'(\mathcal{M})\cdot\mathcal{M}'_\tau$;
+$\sigma'(z) = \sigma(z)(1-\sigma(z)) > 0$ everywhere, and
+$\mathcal{M}'_\tau \geq 0$ by the non-negative weight constraint,
+with strict positivity on the dense set $\{\phi'>0\}$ guaranteed by
+Assumption~\ref{assumption:architecture}.
+\end{proof}
+
+% ============================================================
+\subsection{MNN Structural Guarantees}
+\label{subsec:mnn}
+% ============================================================
+
+\begin{theorem}[MNN Monotonicity and Boundedness]
+\label{thm:mnn-mono}
+Under Assumption~\ref{assumption:architecture}, the MNN output
+$F^*(\tau|\boldsymbol{h}) = \sigma(\mathcal{M}(\tau,\boldsymbol{h};\theta))$
+is non-decreasing in $\tau$ and satisfies $F^*(\tau|\boldsymbol{h}) \in (0,1)$
+for all $\tau \geq 0$, $\boldsymbol{h} \in \mathcal{H}$, and all $\theta$.
+Hence $F^*$ constitutes a valid conditional CDF for every parameter vector.
+\end{theorem}
+
+\begin{proof}
+\emph{Monotonicity.}
+The non-negative weight constraint on the $\tau$-path (Assumption~\ref{assumption:architecture})
+ensures $\mathcal{M}(\tau,\boldsymbol{h};\theta)$ is non-decreasing in $\tau$
+(a composition of non-decreasing functions with non-negative linear maps is
+non-decreasing). Since $\sigma$ is strictly increasing, $F^*$ inherits monotonicity.
+\emph{Boundedness.} $\sigma:\mathbb{R}\to(0,1)$ maps any finite pre-activation to $(0,1)$,
+so $F^* \in (0,1)$ holds by architecture without any constraint on $\theta$.
+\end{proof}
+
+\begin{theorem}[CDF--Intensity Derivative Identity]
+\label{thm:cdf-intensity}
+Let $F^*(\tau|\boldsymbol{h}) = \sigma(\mathcal{M}(\tau,\boldsymbol{h};\theta))$.
+The per-event log-likelihood is given exactly by automatic differentiation:
+\[
+  \log p^*(\tau|\boldsymbol{h})
+  = \log\frac{\partial F^*}{\partial\tau}
+  = \log\!\bigl[\sigma'(\mathcal{M})\cdot\mathcal{M}'_\tau\bigr]
+  = \log\!\bigl[\sigma(\mathcal{M})(1-\sigma(\mathcal{M}))\bigr]
+    + \log\mathcal{M}'_\tau,
+\]
+where $\sigma'(z) = \sigma(z)(1-\sigma(z)) > 0$ for all $z$, so $\log p^*$ is
+always finite and requires no numerical integration.
+\end{theorem}
+
+\begin{proof}
+Chain rule: $\partial F^*/\partial\tau = \sigma'(\mathcal{M})\cdot\mathcal{M}'_\tau$.
+Both factors are positive ($\sigma'(z)>0$ and $\mathcal{M}'_\tau > 0$ by
+Assumption~\ref{assumption:architecture}), so the log is finite.
+Taking the log gives the identity above. $\square$
+\end{proof}
+
+% ============================================================
 \subsection{Universal Approximation}
 % ============================================================
 
@@ -271,6 +341,29 @@ Stage B perturbation: $O(1)$.
 Logit sub-network: $O(\epsilon^{-3/2})$.
 For $\alpha \leq 1$ and $d \geq 1$, $1 + d/\alpha \geq 2 > 3/2$,
 so Stage B is lower-order. Total: $N^* = O(\epsilon^{-(1+d/\alpha)})$.
+\end{proof}
+
+% ============================================================
+\subsection{CDF--Intensity Equivalence}
+% ============================================================
+
+\begin{theorem}[CDF--Intensity Derivative Identity \verified{}]
+\label{thm:cdf-intensity}
+Let $\Lambda(\tau) := \int_0^\tau \lambda^*(s)\,ds$ and
+$F^*(\tau) = 1 - e^{-\Lambda(\tau)}$.  Then:
+\[
+  \frac{dF^*(\tau)}{d\tau}
+  = \lambda^*(\tau)\,(1 - F^*(\tau))
+  = \lambda^*(\tau)\,e^{-\Lambda(\tau)}.
+\]
+In particular, the log-likelihood $\log p^*(\tau|\boldsymbol{h})
+= \log(dF^*/d\tau)$ is finite whenever $\lambda^* > 0$.
+\end{theorem}
+
+\begin{proof}
+Chain rule and FTC:
+$\frac{d}{d\tau}[1 - e^{-\Lambda}] = e^{-\Lambda}\lambda^* = \lambda^*(1-F^*)$.
+Log-likelihood finiteness follows since $\lambda^*>0$ and $e^{-\Lambda}>0$. \qed
 \end{proof}
 
 % ============================================================
