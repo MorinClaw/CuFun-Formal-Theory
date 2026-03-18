@@ -75,52 +75,6 @@ Assumption~\ref{assumption:architecture}.
 \end{proof}
 
 % ============================================================
-\subsection{MNN Structural Guarantees}
-\label{subsec:mnn}
-% ============================================================
-
-\begin{theorem}[MNN Monotonicity and Boundedness]
-\label{thm:mnn-mono}
-Under Assumption~\ref{assumption:architecture}, the MNN output
-$F^*(\tau|\boldsymbol{h}) = \sigma(\mathcal{M}(\tau,\boldsymbol{h};\theta))$
-is non-decreasing in $\tau$ and satisfies $F^*(\tau|\boldsymbol{h}) \in (0,1)$
-for all $\tau \geq 0$, $\boldsymbol{h} \in \mathcal{H}$, and all $\theta$.
-Hence $F^*$ constitutes a valid conditional CDF for every parameter vector.
-\end{theorem}
-
-\begin{proof}
-\emph{Monotonicity.}
-The non-negative weight constraint on the $\tau$-path (Assumption~\ref{assumption:architecture})
-ensures $\mathcal{M}(\tau,\boldsymbol{h};\theta)$ is non-decreasing in $\tau$
-(a composition of non-decreasing functions with non-negative linear maps is
-non-decreasing). Since $\sigma$ is strictly increasing, $F^*$ inherits monotonicity.
-\emph{Boundedness.} $\sigma:\mathbb{R}\to(0,1)$ maps any finite pre-activation to $(0,1)$,
-so $F^* \in (0,1)$ holds by architecture without any constraint on $\theta$.
-\end{proof}
-
-\begin{theorem}[CDF--Intensity Derivative Identity]
-\label{thm:cdf-intensity}
-Let $F^*(\tau|\boldsymbol{h}) = \sigma(\mathcal{M}(\tau,\boldsymbol{h};\theta))$.
-The per-event log-likelihood is given exactly by automatic differentiation:
-\[
-  \log p^*(\tau|\boldsymbol{h})
-  = \log\frac{\partial F^*}{\partial\tau}
-  = \log\!\bigl[\sigma'(\mathcal{M})\cdot\mathcal{M}'_\tau\bigr]
-  = \log\!\bigl[\sigma(\mathcal{M})(1-\sigma(\mathcal{M}))\bigr]
-    + \log\mathcal{M}'_\tau,
-\]
-where $\sigma'(z) = \sigma(z)(1-\sigma(z)) > 0$ for all $z$, so $\log p^*$ is
-always finite and requires no numerical integration.
-\end{theorem}
-
-\begin{proof}
-Chain rule: $\partial F^*/\partial\tau = \sigma'(\mathcal{M})\cdot\mathcal{M}'_\tau$.
-Both factors are positive ($\sigma'(z)>0$ and $\mathcal{M}'_\tau > 0$ by
-Assumption~\ref{assumption:architecture}), so the log is finite.
-Taking the log gives the identity above. $\square$
-\end{proof}
-
-% ============================================================
 \subsection{Universal Approximation}
 % ============================================================
 
