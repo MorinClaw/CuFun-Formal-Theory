@@ -1,0 +1,474 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amsthm, amssymb, mathtools}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
+\tcbuselibrary{theorems, skins}
+
+% ---- Theorem environments ----
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{assumption}{Assumption}[section]
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}[section]
+
+% ---- Lean verification badges ----
+\newcommand{\verified}{%
+  \textcolor{green!60!black}{\textbf{[Lean\,4\,\checkmark]}}%
+}
+\newcommand{\partverified}{%
+  \textcolor{orange!80!black}{\textbf{[Lean\,4\,$\sim$]}}%
+}
+\newcommand{\sorrymark}{%
+  \textcolor{red!70!black}{\textit{[sorry]}}%
+}
+
+% ---- Math macros ----
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\cM}{\mathcal{M}}
+\newcommand{\hhat}{\boldsymbol{h}}
+\newcommand{\sigmoid}{\sigma}
+
+\title{\textbf{CuFun: Machine-Verified Mathematical Foundations}\\[4pt]
+\large Complete Theory with Lean\,4 + Mathlib Formal Proofs}
+\author{Maolin Wang \\ \small Hong Kong Institute of AI for Science (HKAI-Sci) \\
+\small City University of Hong Kong}
+\date{Lean\,4.29.0-rc6 $+$ Mathlib\quad March 2026 \\[2pt]
+{\small\url{https://github.com/MorinClaw/CuFun-Formal-Theory}}}
+
+\begin{document}
+\maketitle
+
+\begin{tcolorbox}[colback=green!5!white, colframe=green!50!black,
+  title=Verification Legend]
+\verified{} = machine-checked, zero \texttt{sorry} in Lean\,4\,+\,Mathlib. \quad
+\partverified{} = partially verified; structural skeleton proved, deep analysis steps use \texttt{sorry}. \quad
+All source files at the URL above.
+\end{tcolorbox}
+
+\tableofcontents
+\bigskip
+
+% ============================================================
+\section{CDF Structure and Axioms}
+% ============================================================
+
+\begin{definition}[Conditional CDF \verified{}]
+\label{def:cdf}
+Let $\cH$ be a history space.  A \emph{conditional CDF} is a function
+$F : \R_{\geq 0} \times \cH \to \R$ satisfying:
+\begin{enumerate}
+  \item \textbf{Zero at origin:} $\forall \hhat \in \cH,\quad F(0\,|\,\hhat) = 0$.
+  \item \textbf{Limit to one:} $\forall \hhat \in \cH,\quad \lim_{\tau\to\infty}
+    F(\tau\,|\,\hhat) = 1$.
+  \item \textbf{Monotonicity:} $\tau_1 \leq \tau_2 \Rightarrow
+    F(\tau_1\,|\,\hhat) \leq F(\tau_2\,|\,\hhat)$.
+  \item \textbf{Boundedness:} $0 \leq F(\tau\,|\,\hhat) \leq 1$ for all
+    $\tau \geq 0$, $\hhat \in \cH$.
+\end{enumerate}
+\end{definition}
+
+\begin{definition}[Differentiable CDF and PDF \verified{}]
+A \emph{differentiable conditional CDF} additionally requires that
+$F(\cdot\,|\,\hhat)$ is differentiable with \emph{strictly positive} derivative:
+\[
+  p^*(\tau\,|\,\hhat) := \frac{\partial F(\tau\,|\,\hhat)}{\partial \tau} > 0
+  \quad \forall\,\tau,\,\hhat.
+\]
+\end{definition}
+
+% ============================================================
+\section{Structural Closure Properties}
+% ============================================================
+
+\begin{theorem}[Convex Combination Closure \verified{}]
+\label{thm:convex-comb}
+Let $F_1, F_2$ be valid conditional CDFs over the same history space $\cH$.
+For any $\lambda \in [0,1]$:
+\[
+  F_\lambda(\tau\,|\,\hhat) := \lambda\, F_1(\tau\,|\,\hhat)
+  + (1-\lambda)\, F_2(\tau\,|\,\hhat)
+\]
+is a valid conditional CDF.
+\end{theorem}
+
+\begin{proof}
+Zero at origin: $F_\lambda(0|\hhat) = \lambda\cdot 0 + (1-\lambda)\cdot 0 = 0$.
+Monotonicity: for $\tau_1 \leq \tau_2$,
+\[
+  F_\lambda(\tau_2|\hhat) - F_\lambda(\tau_1|\hhat)
+  = \underbrace{\lambda}_{\geq 0}\underbrace{(F_1(\tau_2) - F_1(\tau_1))}_{\geq 0}
+  + \underbrace{(1-\lambda)}_{\geq 0}\underbrace{(F_2(\tau_2) - F_2(\tau_1))}_{\geq 0}
+  \geq 0.
+\]
+Boundedness and limit follow by linearity and $0 \leq \lambda \leq 1$.
+\end{proof}
+
+\begin{remark}
+This is the structural backbone of the $\delta$-net blending in the
+Universal Approximation proof (Section~\ref{sec:ua}): approximations at
+grid points can be mixed with Gaussian softmax weights---which are non-negative
+and sum to one---while preserving CDF validity at every $(\tau,\hhat)$.
+\end{remark}
+
+% ============================================================
+\section{MNN Monotonicity Theorems}
+% ============================================================
+
+\begin{theorem}[Weighted Sum Monotonicity \verified{}]
+\label{thm:weighted-sum}
+Let $\{f_i : \R \to \R\}_{i=1}^n$ be monotone non-decreasing and
+$w_i \geq 0$.  Then $g(\tau) := \sum_{i=1}^n w_i\, f_i(\tau)$ is monotone
+non-decreasing.
+\end{theorem}
+
+\begin{proof}
+For $\tau_1 \leq \tau_2$:
+$g(\tau_2) - g(\tau_1) = \sum_i w_i (f_i(\tau_2) - f_i(\tau_1)) \geq 0$.
+\end{proof}
+
+\begin{theorem}[Sigmoid Monotonicity \verified{}]
+\label{thm:sigmoid}
+The sigmoid $\sigmoid(x) = (1+e^{-x})^{-1}$ is strictly monotone increasing
+and satisfies $\sigmoid(x) \in (0,1)$ for all $x \in \R$.
+\end{theorem}
+
+\begin{theorem}[MNN Architectural Monotonicity \verified{}]
+\label{thm:mnn-mono}
+Let $w_1,\ldots,w_d \geq 0$ and $\phi : \R \to \R$ monotone.  Then
+\[
+  \hat{F}(\tau) := \sigmoid\!\left(\sum_{i=1}^d w_i\,\phi(\tau)\right)
+\]
+is monotone non-decreasing, satisfies $\hat{F}(\tau) \in (0,1)$, and has
+well-defined log-density.  Thus monotonicity and boundedness hold by
+architecture; only $\hat{F}(0)=0$ requires initialization.
+\end{theorem}
+
+% ============================================================
+\section{CDF--Intensity Equivalence}
+% ============================================================
+
+\begin{theorem}[CDF--Intensity Derivative Identity \verified{}]
+\label{thm:cdf-intensity}
+Let $\Lambda(\tau) := \int_0^\tau \lambda^*(s)\,ds$ and
+$F^*(\tau) = 1 - e^{-\Lambda(\tau)}$.  Then:
+\[
+  \frac{dF^*(\tau)}{d\tau}
+  = \lambda^*(\tau)\,(1 - F^*(\tau))
+  = \lambda^*(\tau)\,e^{-\Lambda(\tau)} > 0.
+\]
+\end{theorem}
+
+\begin{proof}
+Chain rule and the FTC:
+$\frac{d}{d\tau}[1 - e^{-\Lambda}] = e^{-\Lambda}\lambda^*
+  = \lambda^*(1-F^*)$. \qed
+\end{proof}
+
+\begin{corollary}[PDF Positivity \verified{}]
+If $\lambda^*(t) > 0$ everywhere, then $p^*(\tau) > 0$ and
+$\log p^*(\tau|\hhat)$ is finite.
+\end{corollary}
+
+% ============================================================
+\section{Numerical Error Analysis}
+% ============================================================
+
+\begin{definition}[Higham's Rounding Constant \verified{}]
+For $n$ sequential floating-point operations with unit roundoff $u < 1/n$:
+\[
+  \gamma_n := \frac{nu}{1-nu}.
+\]
+\end{definition}
+
+\begin{theorem}[CDF Numerical Superiority \verified{}]
+\label{thm:numerical}
+If MNN depth $L$, width $W$, and quadrature points $N$ satisfy
+$2LW < N$ with $(2LW)u < 1$ and $Nu < 1$, then:
+\[
+  \gamma_{2LW} < \gamma_N.
+\]
+\end{theorem}
+
+\begin{proof}
+Let $a = (2LW)u < Nu = b$ with $0 < a < b < 1$.  Then
+$a/(1-a) < b/(1-b) \iff a < b$. \qed
+\end{proof}
+
+% ============================================================
+\section{Statistical Convergence Structure}
+% ============================================================
+
+\begin{theorem}[MSE Bias--Variance Decomposition \verified{}]
+\label{thm:mse}
+For any estimator $\hat{F}_n$, best-in-class $F_n^*$, and true CDF $F_0$:
+\[
+  \bigl(\hat{F}_n - F_0\bigr)^2
+  \;\leq\;
+  2\underbrace{\bigl(\hat{F}_n - F_n^*\bigr)^2}_{\text{estimation error}}
+  +\;
+  2\underbrace{\bigl(F_n^* - F_0\bigr)^2}_{\text{approximation error}}.
+\]
+\end{theorem}
+
+\begin{proof}
+Apply $(a+b)^2 \leq 2a^2 + 2b^2$ with $a = \hat{F}_n - F_n^*$,
+$b = F_n^* - F_0$. \qed
+\end{proof}
+
+% ============================================================
+\section{Universal Approximation with Quantitative Rates}
+\label{sec:ua}
+% ============================================================
+
+\subsection{Assumptions}
+
+\begin{assumption}[CDF Regularity]
+\label{ass:cdf}
+$F_0(\tau|\hhat)$ is a valid conditional CDF for every $\hhat \in \cH$:
+monotone in $\tau$, $F_0(0|\hhat)=0$, $F_0(\tau|\hhat)\in[0,1]$,
+and $F_0(\tau|\hhat)\to 1$ as $\tau\to\infty$.
+\end{assumption}
+
+\begin{assumption}[MNN Architecture]
+\label{ass:arch}
+The MNN output is $F^*(\tau|\hhat) = \sigmoid(\cM(\tau,\hhat;\theta))$
+with non-negative $\tau$-path weights.
+\end{assumption}
+
+\begin{assumption}[H\"older Smoothness in $\hhat$]
+\label{ass:holder}
+There exist $C, \alpha > 0$ such that for all $\tau \geq 0$:
+\[
+  |F_0(\tau|\hhat_1) - F_0(\tau|\hhat_2)|
+  \;\leq\; C\,\|\hhat_1 - \hhat_2\|^\alpha,
+  \qquad \forall\,\hhat_1,\hhat_2 \in \cH.
+\]
+\end{assumption}
+
+\begin{remark}
+A parallel H\"older condition in the $\tau$-direction is also needed
+for the Step~3 PWL construction (see the proof); it is not listed in the
+original assumptions but must be added for completeness.
+\end{remark}
+
+\subsection{Main Theorem}
+
+\begin{theorem}[Universal Approximation \partverified{}]
+\label{thm:ua}
+Under Assumptions~\ref{ass:cdf}--\ref{ass:holder}, for any $\epsilon > 0$
+there exists a network $\theta^*$ with
+\[
+  N^* = O\!\left(\epsilon^{-(1+d/\alpha)}\right)
+\]
+parameters such that
+\[
+  \sup_{\tau \geq 0,\,\hhat \in \cH}
+  \bigl|\sigmoid\!\bigl(\cM(\tau,\hhat;\theta^*)\bigr)
+        - F_0(\tau|\hhat)\bigr| < \epsilon.
+\]
+Moreover, $F^*(\cdot|\hhat)$ is a valid conditional CDF for all $\hhat$.
+\end{theorem}
+
+\begin{proof}
+We construct a specific $\theta^*$ in two stages.
+
+\paragraph{Stage A: Direct CDF Approximation.}
+
+\textbf{Step 1 (Tail and boundary reduction).}
+By the limit-to-one axiom, choose $T^* > 0$ such that
+\[
+  \inf_{\hhat \in \cH} F_0(T^*|\hhat) > 1 - \tfrac{\epsilon}{8}.
+\]
+Since $F_0(0|\hhat) = 0$, choose $\tau_{\min} > 0$ such that
+$\sup_{\hhat} F_0(\tau_{\min}|\hhat) < \epsilon/8$.
+Set $T = \max(T^*, \tau_{\min}+1)$ to ensure $\tau_{\min} < T$.
+The core region is $[\tau_{\min},T] \times \cH$.
+\begin{quote}\small \verified{} Lean: \texttt{step1\_tail\_bdy} — proved using
+\texttt{max} construction and monotonicity propagation.\end{quote}
+
+\textbf{Step 2 (History discretisation).}
+Define the Gaussian softmax weights:
+\[
+  w_j(\hhat)
+  = \frac{\exp\!\bigl(-\|\hhat - \hhat_j\|^2/\delta^2\bigr)}
+         {\sum_k \exp\!\bigl(-\|\hhat - \hhat_k\|^2/\delta^2\bigr)},
+  \qquad \sum_j w_j \equiv 1,\; w_j \geq 0.
+\]
+The \emph{Gaussian softmax $\alpha$-moment} is
+\[
+  \Gamma_{d,\alpha}
+  := \sup_{\hhat\in\cH}\;\sum_j w_j(\hhat)
+     \Bigl(\tfrac{\|\hhat_j - \hhat\|}{\delta}\Bigr)^{\!\alpha}.
+\]
+This is finite: the contribution from shells at radius $r\delta$ decays as
+$O(r^{d-1+\alpha} e^{-r^2})$, which is summable.  Set
+\[
+  \delta = \Bigl(\tfrac{\epsilon}{8C\,\max\{1,\Gamma_{d,\alpha}\}}\Bigr)^{1/\alpha}.
+\]
+Cover the compact set $\cH \subset \R^d$ with a $\delta$-net
+$\{\hhat_j\}_{j=1}^K$ where $K = O(\epsilon^{-d/\alpha})$.
+\begin{quote}\small \verified{} Lean: \texttt{gaussW\_nonneg}, \texttt{gaussW\_sum\_one} — proved
+via \texttt{Finset.sum\_div} and \texttt{div\_self}.
+\sorrymark{} \texttt{step2\_Gamma\_finite} — Gaussian shell series summation.\end{quote}
+
+\textbf{Step 3 (Pointwise monotone approximation).}
+For each $j$, approximate $g_j(\tau) := F_0(\tau|\hhat_j)$ on $[0,T]$ by a
+piecewise-linear non-decreasing function $\hat{g}_j$ with
+$O(\epsilon^{-1/\alpha})$ breakpoints satisfying
+$\|\hat{g}_j - g_j\|_\infty < \epsilon/8$.
+\begin{quote}\small \sorrymark{} Lean: \texttt{step3\_pwl} — requires an explicit
+$\tau$-direction H\"older regularity assumption (see Remark above).\end{quote}
+
+\textbf{Step 4 (Blending).}
+Define
+$\hat{\cM}(\tau,\hhat) := \sum_j w_j(\hhat)\,\hat{g}_j(\tau).$
+This satisfies:
+\begin{enumerate}
+  \item[(a)] \emph{Monotone in $\tau$:} each $\hat{g}_j$ is non-decreasing and
+    weights are fixed.
+  \item[(b)] \emph{Range $\subset [0,1]$:} convex combination of $[0,1]$-valued functions.
+  \item[(c)] \emph{Boundary:} $\hat{\cM}(0,\hhat) = \sum_j w_j(\hhat)\,\hat{g}_j(0) = 0$.
+\end{enumerate}
+\begin{quote}\small \verified{} Lean: \texttt{step4a\_mono}, \texttt{step4b\_range},
+\texttt{step4c\_boundary} — proved via \texttt{Finset.sum\_le\_sum},
+\texttt{sum\_nonneg}, and \texttt{Finset.sum\_eq\_zero}.\end{quote}
+
+\textbf{Step 5 (Core error bound).}
+On $[\tau_{\min},T] \times \cH$:
+\begin{align*}
+  |\hat{\cM} - F_0|
+  &\leq \underbrace{\sum_j w_j\,|\hat{g}_j - g_j|}_{\leq\,\epsilon/8}
+       + \underbrace{\sum_j w_j\,|F_0(\cdot|\hhat_j) - F_0(\cdot|\hhat)|}_{\leq\,C\delta^\alpha\Gamma_{d,\alpha}\,\leq\,\epsilon/8}
+  \;\leq\; \frac{\epsilon}{4}.
+\end{align*}
+\begin{quote}\small \sorrymark{} Lean: \texttt{step5\_core\_error} — weighted triangle inequality.\end{quote}
+
+\textbf{Step 6 (Tail and boundary).}
+\begin{itemize}
+  \item \emph{Upper tail} ($\tau > T$): $\hat{\cM}(\tau,\hhat) \leq 1$ and
+    $F_0(\tau,\hhat) > 1-\epsilon/8$, so $|\hat{\cM} - F_0| < 3\epsilon/8 < \epsilon/2$.
+  \item \emph{Lower boundary} ($\tau \leq \tau_{\min}$):
+    Both $\hat{\cM}$ and $F_0$ lie in $[0,3\epsilon/8]$,
+    giving $|\hat{\cM} - F_0| < 3\epsilon/8 < \epsilon/2$.
+\end{itemize}
+Combined: $\sup_{\tau \geq 0,\,\hhat \in \cH}|\hat{\cM} - F_0| < \epsilon/2$.
+\begin{quote}\small \verified{} Lean: \texttt{step6\_upper\_tail}, \texttt{step6\_lower\_bdy}
+— proved with \texttt{abs\_lt} + \texttt{linarith}.\end{quote}
+
+\paragraph{Stage B: Lift to the $\sigmoid$-MNN Architecture.}
+
+\textbf{Step 7 (Error combination).}
+Let $\eta := c_\ell/2 > 0$ where $c_\ell > 0$ is the lower boundary value
+of $F_0$ on the core region (independent of $\epsilon$).
+Define the perturbation $\widetilde{\cM} := (1-2\eta)\hat{\cM} + \eta \in [\eta, 1-\eta]$.
+Apply the logit lift $\cM_{\mathrm{pre}} := \sigmoid^{-1}(\widetilde{\cM})$ and re-run
+the Stage~A construction in pre-sigmoid space with the adjusted H\"older constant
+$C' = C/(\eta(1-\eta))$, obtaining a network $\cM_{\mathrm{net}}$ with
+$O(\epsilon^{-(1+d/\alpha)})$ parameters.
+
+Since $\mathrm{Lip}(\sigmoid) = 1/4$:
+\[
+  |\sigmoid(\cM_{\mathrm{net}}) - \widetilde{\cM}| < \tfrac{\epsilon}{2}.
+\]
+The final error decomposes as:
+\[
+  |F^* - F_0|
+  \;\leq\;
+  \underbrace{|\sigmoid(\cM_{\mathrm{net}}) - \widetilde{\cM}|}_{<\,\epsilon/2}
+  +
+  \underbrace{|\widetilde{\cM} - \hat{\cM}|}_{\leq\,\eta}
+  +
+  \underbrace{|\hat{\cM} - F_0|}_{<\,\epsilon/2\,-\,\eta}
+  \;<\; \epsilon.
+\]
+\begin{quote}\small \verified{} Lean: \texttt{step7\_combine} (triangle inequality via
+\texttt{rw [abs\_lt]} + \texttt{linarith} with ring identity),
+\texttt{perturbation\_range} (\texttt{nlinarith}).
+\sorrymark{} \texttt{sigmoid\_quarter\_lip}: $\mathrm{Lip}(\sigmoid)=1/4$
+proof is mathematically complete (AM-GM on $\sigmoid'(x) = \sigmoid(x)(1-\sigmoid(x))
+\leq 1/4$, then \texttt{lipschitzWith\_of\_nnnorm\_deriv\_le}),
+but blocked by NNReal coercion API in Lean\,4.29.
+\sorrymark{} \texttt{logit\_lip\_on\_interval}: MVT on $\sigmoid^{-1}$.\end{quote}
+
+\paragraph{Parameter count.}
+$K \times O(\epsilon^{-1/\alpha}) = O(\epsilon^{-d/\alpha}) \times O(\epsilon^{-1/\alpha})
+= O(\epsilon^{-(1+d/\alpha)})$. \qed
+\end{proof}
+
+\subsection{Known Issues / Paper Gaps}
+
+The following issues were identified during formalization:
+\begin{enumerate}
+  \item \textbf{Step~2 --- Circular dependency.}
+    $\Gamma_{d,\alpha}$ is defined via weights $w_j$ which depend on~$\delta$,
+    while $\delta$ is chosen to depend on~$\Gamma_{d,\alpha}$.
+    This is resolved by observing that the normalized
+    ratios $\|\hhat_j - \hhat\|/\delta$ form a unit-spaced lattice
+    independent of $\delta$, so $\Gamma_{d,\alpha}$ is a geometric constant.
+    The argument should be made explicit in the paper.
+
+  \item \textbf{Step~3 --- Missing assumption.}
+    The PWL approximation requires H\"older regularity of $F_0(\cdot|\hhat_j)$ in the
+    $\tau$-direction, but only $\hhat$-direction smoothness appears in
+    Assumption~\ref{ass:holder}.  A $\tau$-Lipschitz (or H\"older) condition should
+    be added.
+
+  \item \textbf{Step~7 --- Tolerance adjustment.}
+    Stage~A must be executed with tolerance $\epsilon/2 - \eta$ (not $\epsilon/2$)
+    for the final sum $\epsilon/2 + \eta + (\epsilon/2-\eta) = \epsilon$ to hold exactly.
+    This is currently implicit.
+\end{enumerate}
+
+% ============================================================
+\section{Summary of All Verified Results}
+% ============================================================
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{>{\raggedright}p{5.5cm} p{6.5cm} l}
+\toprule
+\textbf{Result} & \textbf{Content} & \textbf{Status} \\
+\midrule
+Definition~\ref{def:cdf} & CDF axiom structure & \verified{} \\
+Theorem~\ref{thm:convex-comb} & Convex combination closure & \verified{} \\
+Theorem~\ref{thm:weighted-sum} & Weighted sum monotonicity & \verified{} \\
+Theorem~\ref{thm:sigmoid} & Sigmoid monotonicity + range & \verified{} \\
+Theorem~\ref{thm:mnn-mono} & MNN architectural monotonicity & \verified{} \\
+Theorem~\ref{thm:cdf-intensity} & CDF--intensity derivative identity & \verified{} \\
+Corollary (PDF positivity) & $p^*(\tau|\hhat) > 0$, log-ll finite & \verified{} \\
+Theorem~\ref{thm:numerical} & CDF rounding error $<$ quadrature & \verified{} \\
+Theorem~\ref{thm:mse} & MSE bias-variance decomposition & \verified{} \\
+\midrule
+Theorem~\ref{thm:ua} Step~1 & Tail \& boundary reduction & \verified{} \\
+Theorem~\ref{thm:ua} Step~4(a,b,c) & Blending: mono, range, boundary & \verified{} \\
+Theorem~\ref{thm:ua} Step~6 & Tail \& boundary error bounds & \verified{} \\
+Theorem~\ref{thm:ua} Step~7 & Error combination ($<\epsilon$) & \verified{} \\
+Perturbation range & $(1-2\eta)v+\eta \in [\eta,1{-}\eta]$ & \verified{} \\
+\midrule
+Theorem~\ref{thm:ua} Step~2 & $\Gamma_{d,\alpha} < \infty$ (Gaussian shells) & \sorrymark{} \\
+Theorem~\ref{thm:ua} Step~3 & PWL approximation & \sorrymark{} \\
+Theorem~\ref{thm:ua} Step~5 & Core mixture error bound & \sorrymark{} \\
+$\mathrm{Lip}(\sigmoid) = 1/4$ & AM-GM + MVT & \sorrymark{} \\
+Logit Lipschitz on $[\eta,1{-}\eta]$ & MVT on $\sigmoid^{-1}$ & \sorrymark{} \\
+Theorem~\ref{thm:ua} orchestration & Stage~A, Stage~B, final result & \sorrymark{} \\
+\bottomrule
+\end{tabular}
+\caption{All CuFun results. Top block: zero \texttt{sorry}, Lean\,4.29.0-rc6 + Mathlib.
+Middle block: Theorem~7 steps with complete proofs.
+Bottom block: deep analysis or external approximation theory (\texttt{sorry} with documented proof sketches).
+Source: \href{https://github.com/MorinClaw/CuFun-Formal-Theory}{\texttt{CuFun-Formal-Theory}}.}
+\label{tab:summary}
+\end{table}
+
+\end{document}
