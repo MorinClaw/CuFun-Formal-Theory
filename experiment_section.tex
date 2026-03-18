@@ -96,7 +96,7 @@ Unlike CuFun, however, the additional nonlinear layer $\exp(-\Lambda)$ between
 the network output and the log-likelihood increases the condition number of the
 computation (Theorem~\ref{thm:numerical_superiority}), and the indirect CDF
 parameterization does not carry the structural monotonicity guarantees of the
-MNN architecture (Theorems~\ref{thm:mnn_monotone} and~\ref{thm:mnn_bounded}).
+MNN architecture (Theorem~\ref{thm:mnn-mono}).
 
 % ------------------------------------------------------------------
 \subsection{Implementation Details}
@@ -118,7 +118,7 @@ We report the Negative Log-Likelihood (NLL):
 Lower NLL indicates a better-fitting model.
 NLL directly measures the quality of
 $p^*(\tau\mid\boldsymbol{h}) = dF/d\tau$,
-confirmed by Theorem~\ref{thm:cdf_intensity_equiv}.
+confirmed by Theorem~\ref{thm:cdf-intensity}.
 
 % ------------------------------------------------------------------
 \subsection{NLL Comparison on Synthetic Datasets}
@@ -144,7 +144,7 @@ CuFun's autodiff with $\mathcal{O}(LW)$ operations stays numerically stable.
 \paragraph{(3) CuFun outperforms FullyNN despite both avoiding quadrature.}
 The advantage stems from \emph{structural} validity:
 CuFun's monotone MNN guarantees $F\in[0,1]$ and $dF/d\tau>0$
-(Theorems~\ref{thm:mnn_monotone}--\ref{thm:mnn_bounded}), letting the
+(Theorem~\ref{thm:mnn-mono}), letting the
 optimiser exploit the full feasible parameter space without constraint
 projection.
 
@@ -186,7 +186,7 @@ On Bookorder (millisecond-resolution timestamps spanning orders of
 magnitude), intensity-based models suffer ill-conditioning when
 $\lambda^*$ is very large or small.
 CuFun's sigmoid output is always in $(0,1)$
-(Theorem~\ref{thm:mnn_bounded}), preventing catastrophic cancellation
+(Theorem~\ref{thm:mnn-mono}), preventing catastrophic cancellation
 in $\log(1-F(\tau))$~\cite{magdon1998neural}.
 
 \paragraph{(3) On social-media datasets, all models converge.}
